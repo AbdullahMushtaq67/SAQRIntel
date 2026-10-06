@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SAQRIntel — OSINT &amp; Recon</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="view-workspaces" class="container py-5">
+    <div class="text-center mb-5">
+      <div class="saqrintel-mark mx-auto mb-3">A</div>
+      <h1 class="display-4 fw-bold brand-title">SAQRINTEL</h1>
+      <p class="lead text-secondary">SAQRIntel - OSINT &amp; reconnaissance framework</p>
+      <p class="small text-danger fw-semibold">Authorized security testing and OSINT research only</p>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="panel p-4 mb-4">
+          <h5 class="mb-3">Create workspace</h5>
+          <div class="input-group">
+            <input id="new-ws-name" class="form-control" placeholder="Engagement name (e.g. acme-q3)" />
+            <input id="new-ws-desc" class="form-control" placeholder="Optional description" />
+            <button class="btn btn-accent" id="btn-create-ws">Create</button>
+          </div>
+        </div>
+        <div class="panel p-4">
+          <h5 class="mb-3">Workspaces</h5>
+          <div id="ws-list" class="list-group list-group-flush"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-dashboard" class="d-none">
+    <nav class="navbar navbar-expand-lg navbar-dark saqrintel-nav px-3">
+      <a class="navbar-brand fw-bold" href="#" id="nav-home">SAQRINTEL</a>
+      <span class="navbar-text text-white-50 me-auto" id="nav-ws-name"></span>
+      <button class="btn btn-sm btn-outline-light me-2" id="btn-back-ws">Workspaces</button>
+      <button class="btn btn-sm btn-outline-warning" id="btn-settings">Settings</button>
+    </nav>
+
+    <div class="container-fluid py-3">
+      <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-scan">Scan</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-results">Results</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-graph">Network Graph</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-findings">Findings</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-report">Report</button></li>
+      </ul>
+
+      <div class="tab-content pt-3">
+        <!-- SCAN -->
+        <div class="tab-pane fade show active" id="tab-scan">
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="panel p-3">
+                <label class="form-label">Target (domain, IP, or URL)</label>
+                <input id="scan-target" class="form-control mb-3" placeholder="example.com" />
+                <label class="form-label">Modules</label>
+                <div class="form-check">
+                  <input class="form-check-input mod-check" type="checkbox" value="dns" id="mod-dns" checked />
+                  <label class="form-check-label" for="mod-dns">Domain / DNS</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input mod-check" type="checkbox" value="email" id="mod-email" checked />
+                  <label class="form-check-label" for="mod-email">Email OSINT</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input mod-check active-mod" type="checkbox" value="network" id="mod-network" />
+                  <label class="form-check-label" for="mod-network">Network Mapping <span class="badge text-bg-warning">active</span></label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input mod-check active-mod" type="checkbox" value="web" id="mod-web" />
+                  <label class="form-check-label" for="mod-web">Web Recon / Fuzzer <span class="badge text-bg-warning">active</span></label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input mod-check active-mod" type="checkbox" value="webcheck" id="mod-webcheck" />
+                  <label class="form-check-label" for="mod-webcheck">Web Security Checks <span class="badge text-bg-warning">active</span></label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="opt-dns-brute" checked />
+                  <label class="form-check-label" for="opt-dns-brute">DNS subdomain brute-force</label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="opt-do-fuzz" checked />
+                  <label class="form-check-label" for="opt-do-fuzz">Run path fuzzer (web)</label>
+                </div>
+                <button class="btn btn-accent w-100" id="btn-run-scan">
+                  <i class="bi bi-play-fill"></i> Run Scan
+                </button>
+                <p class="small text-secondary mt-2 mb-0">Active modules require an authorization confirmation before scanning.</p>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="panel p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Live output</h6>
+                  <span id="scan-status" class="badge text-bg-secondary">idle</span>
+                </div>
+                <pre id="live-log" class="live-log mb-0"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="tab-pane fade" id="tab-results">
+          <div class="panel p-3">
+            <div id="risk-panel" class="mb-3"></div>
+            <ul class="nav nav-pills mb-3" id="result-pills">
+              <li class="nav-item"><button class="nav-link active" data-module="">All</button></li>
+              <li class="nav-item"><button class="nav-link" data-module="dns">DNS</button></li>
+              <li class="nav-item"><button class="nav-link" data-module="email">Email</button></li>
+              <li class="nav-item"><button class="nav-link" data-module="network">Network</button></li>
+              <li class="nav-item"><button class="nav-link" data-module="web">Web</button></li>
+              <li class="nav-item"><button class="nav-link" data-module="webcheck">Web Checks</button></li>
+            </ul>
+            <div id="results-cards" class="row g-3"></div>
+          </div>
+        </div>
+
+        <!-- GRAPH -->
+        <div class="tab-pane fade" id="tab-graph">
+          <div class="panel p-3">
+            <div class="d-flex justify-content-between mb-2">
+              <h6 class="mb-0">Interactive network graph</h6>
+              <button class="btn btn-sm btn-outline-secondary" id="btn-reload-graph">Reload</button>
+            </div>
+            <div id="network-graph" class="network-graph"></div>
+            <div class="small text-secondary mt-2">
+              <span class="legend domain"></span> Domain
+              <span class="legend subdomain"></span> Subdomain
+              <span class="legend ip"></span> IP
+              <span class="legend port"></span> Port
+              <span class="legend asn"></span> ASN
+            </div>
+          </div>
+        </div>
+
+        <!-- FINDINGS -->
+        <div class="tab-pane fade" id="tab-findings">
+          <div class="panel p-3">
+            <p class="text-secondary small">Adjust severity before generating the final report.</p>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle" id="findings-table">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Module</th><th>Title</th><th>Severity</th><th>Created</th><th>Controls</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORT -->
+        <div class="tab-pane fade" id="tab-report">
+          <div class="panel p-4">
+            <h5>Export report</h5>
+            <p class="text-secondary">Aggregates all workspace findings into one PDF or JSON export.</p>
+            <div class="d-flex gap-2 mb-4">
+              <button class="btn btn-accent" id="btn-pdf">Generate PDF Report</button>
+              <button class="btn btn-outline-secondary" id="btn-json">Export JSON</button>
+            </div>
+            <div id="report-links"></div>
+            <hr />
+            <h6>Previous reports</h6>
+            <ul id="report-list" class="list-group list-group-flush"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal fade" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">Rate limit (req/s)</label>
+            <input type="number" step="0.1" id="set-rate" class="form-control" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Thread count</label>
+            <input type="number" id="set-threads" class="form-control" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Nmap ports (e.g. --top-ports 100 or 1-65535)</label>
+            <input type="text" id="set-nmap" class="form-control" />
+            <div class="form-text text-warning">Full range 1-65535 is slow and noisy — use only when authorized and necessary.</div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Subdomain wordlist path</label>
+            <input type="text" id="set-sub-wl" class="form-control" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Fuzzer wordlist path</label>
+            <input type="text" id="set-fuzz-wl" class="form-control" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Crawl max depth</label>
+            <input type="number" id="set-depth" class="form-control" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Crawl max pages</label>
+            <input type="number" id="set-pages" class="form-control" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-accent" id="btn-save-settings">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authorization modal -->
+  <div class="modal fade" id="authModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-warning">
+        <div class="modal-header bg-warning-subtle">
+          <h5 class="modal-title">Authorization required</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>You selected <strong>active</strong> modules (network scan and/or web fuzzing) that send traffic to the target.</p>
+          <p class="mb-2">Confirm you have explicit authorization to test:</p>
+          <p class="fw-bold" id="auth-target-label"></p>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="auth-confirm" />
+            <label class="form-check-label" for="auth-confirm">
+              I am authorized to perform active reconnaissance against this target.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-warning" id="btn-auth-continue" disabled>Continue scan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/graph.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

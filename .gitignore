@@ -1,4 +1,27 @@
-
-# Python cache files
+# SAQRIntel
 __pycache__/
 *.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+data/
+reports/*.json
+!reports/.gitkeep
+.pytest_cache/
+.mypy_cache/
+*.db
+.DS_Store
+.idea/
+.vscode/
+
+# Local academic report & screenshot assets (not published)
+docs/
+
+# Editor / agent leftovers
+.cursor/
+*.docx
+
+
+# Generated reports
+reports/*.pdf
